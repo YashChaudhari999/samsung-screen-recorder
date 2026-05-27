@@ -1,0 +1,6 @@
+AppVersion: 8.0.0.23
+Build: BP2A.250605.031
+OS: Android 16
+Knox: 3.12 (Level 39)
+OneUI: 8.0
+Aligned_Date: 2026-05-05

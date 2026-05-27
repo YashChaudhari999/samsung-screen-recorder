@@ -1,0 +1,14 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<TOKEN>
+    <MODE TYPE="0"/>
+    <PACKAGE name="com.sec.app.screenrecorder"/>
+    <DIGEST value="6a0f50dbaf116efb70082e16829aaca03432fbffda25bc82e1bb50216268ce87"/>
+    <KEYTYPE name="platform"/>
+    <APKNAME name="ScreenRecorder.apk"/>
+    <RESIGNING value="n"/>
+    <CROSSDOWN value="0"/>
+    <CREATE date="20260505"/>
+    <VERSION value="80038527"/>
+    <MODEL name="SM-E066B"/>
+    <INDEX value="8.0"/>
+</TOKEN>
