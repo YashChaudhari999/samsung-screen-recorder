@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="panel_bg">#252525</color>
+    <color name="text_primary">#FFFFFF</color>
+    <color name="text_secondary">#8E8E93</color>
+    <color name="accent_blue">#3F7FEF</color>
+    <color name="icon_unselected">#5E5E62</color>
+    <color name="divider_color">#3A3A3C</color>
+    <color name="area_option_bg_selected">#2C2C2E</color>
+    <color name="area_option_bg_unselected">#1C1C1E</color>
+    <color name="radio_unselected">#5E5E62</color>
+</resources>

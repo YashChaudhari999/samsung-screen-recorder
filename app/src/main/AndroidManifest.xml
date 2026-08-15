@@ -1,0 +1,84 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools">
+
+    <!-- Permissions required for QS tile + future recording -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MEDIA_PROJECTION" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_MICROPHONE" />
+    <uses-permission android:name="android.permission.RECORD_AUDIO" />
+    <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW" />
+
+    <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE" android:maxSdkVersion="28" />
+
+    <application
+        android:allowBackup="true"
+        android:dataExtractionRules="@xml/data_extraction_rules"
+        android:fullBackupContent="@xml/backup_rules"
+        android:icon="@drawable/icon_screen_recorder"
+        android:label="@string/app_name"
+        android:supportsRtl="true"
+        android:theme="@style/Theme.SSR">
+
+        <!-- ── Main launcher Activity ──────────────────────────────────── -->
+        <activity
+            android:name=".MainActivity"
+            android:theme="@style/Theme.SSR.Translucent"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+
+
+        <!--
+            ── Permission proxy Activity ──────────────────────────────────
+            Invisible. Requests the system MediaProjection screen-capture dialog
+            and re-broadcasts the result token. Mirrors Samsung's
+            MediaProjectionActivity exactly.
+        -->
+        <activity
+            android:name=".PermissionProxyActivity"
+            android:exported="false"
+            android:excludeFromRecents="true"
+            android:launchMode="singleInstance"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+
+        <activity
+            android:name=".CropOverlayActivity"
+            android:exported="false"
+            android:theme="@android:style/Theme.Translucent.NoTitleBar" />
+
+        <!--
+            ── Quick Settings Tile ────────────────────────────────────────
+            Inspired by Samsung's RecordScreenTile TileService registration.
+            To add: pull down notification shade → long press → Edit tiles →
+            drag "Screen Recorder" into the active tiles area.
+        -->
+        <service
+            android:name=".ScreenRecorderTileService"
+            android:exported="true"
+            android:label="@string/qs_tile_label"
+            android:icon="@drawable/quick_panel_icon_record_screen"
+            android:permission="android.permission.BIND_QUICK_SETTINGS_TILE">
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE" />
+            </intent-filter>
+            <!-- Long-press on the tile shows Settings — mirrors Samsung's SettingActivity -->
+            <intent-filter>
+                <action android:name="android.service.quicksettings.action.QS_TILE_PREFERENCES" />
+            </intent-filter>
+        </service>
+
+        <service
+            android:name=".RecordingService"
+            android:foregroundServiceType="mediaProjection|microphone"
+            android:exported="false" />
+
+    </application>
+
+</manifest>

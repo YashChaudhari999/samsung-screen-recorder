@@ -1,0 +1,383 @@
+<?xml version="1.0" encoding="utf-8"?>
+<FrameLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:app="http://schemas.android.com/apk/res-auto"
+    android:id="@+id/main_root"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="#80000000">
+
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_gravity="bottom"
+        android:orientation="vertical"
+        android:clickable="true"
+        android:focusable="true"
+        android:background="@drawable/bg_bottom_sheet">
+
+    <!-- ───────────────────────────────────────── Title ── -->
+    <TextView
+        android:id="@+id/tv_title"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingTop="28dp"
+        android:paddingBottom="10dp"
+        android:text="Start recording with Screen recorder?"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:fontFamily="sans-serif-medium"
+        android:lineSpacingMultiplier="1.15" />
+
+    <!-- ─────────────────────────────────── Description ── -->
+    <TextView
+        android:id="@+id/tv_description"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="22dp"
+        android:text="Screen recorder will have access to the info on your screen or played from your phone while recording. This can include passwords, payment details, pictures, messages, and more."
+        android:textColor="@color/text_secondary"
+        android:fontFamily="sans-serif"
+        android:textSize="14sp"
+        android:lineSpacingExtra="2dp" />
+
+    <!-- ─────────────────────── Section label: Area ────── -->
+    <TextView
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:paddingBottom="14dp"
+        android:text="Area to record"
+        android:textColor="@color/text_primary"
+        android:textSize="16sp"
+        android:fontFamily="sans-serif-medium" />
+
+    <!-- ──────────────────── Area option cards row ──────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:orientation="horizontal"
+        android:paddingStart="20dp"
+        android:paddingEnd="20dp"
+        android:paddingBottom="22dp"
+        android:weightSum="2">
+
+        <!-- Full screen (SELECTED) -->
+        <LinearLayout
+            android:id="@+id/option_full_screen"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="12dp"
+            android:layout_marginEnd="6dp"
+            android:background="@drawable/bg_area_option_selected">
+
+            <ImageView
+                android:id="@+id/iv_full_screen"
+                android:layout_width="56dp"
+                android:layout_height="90dp"
+                android:src="@drawable/sel_full_screen_icon"
+                android:contentDescription="Full screen icon"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/tv_full_screen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Full screen"
+                android:textColor="@color/accent_blue"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="8dp" />
+
+            <RadioButton
+                android:id="@+id/rb_full_screen"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:checked="true"
+                android:clickable="false"
+                android:focusable="false"
+                android:background="@null"
+                android:button="@drawable/sel_samsung_radio" />
+
+        </LinearLayout>
+
+        <!-- Partial screen (UNSELECTED) -->
+        <LinearLayout
+            android:id="@+id/option_partial_screen"
+            android:layout_width="0dp"
+            android:layout_height="wrap_content"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center_horizontal"
+            android:paddingStart="14dp"
+            android:paddingEnd="14dp"
+            android:paddingTop="16dp"
+            android:paddingBottom="12dp"
+            android:layout_marginStart="6dp"
+            android:background="@drawable/bg_area_option_unselected">
+
+            <ImageView
+                android:id="@+id/iv_partial_screen"
+                android:layout_width="56dp"
+                android:layout_height="90dp"
+                android:src="@drawable/sel_partial_screen_icon"
+                android:contentDescription="Partial screen icon"
+                android:scaleType="fitCenter" />
+
+            <TextView
+                android:id="@+id/tv_partial_screen"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Partial screen"
+                android:textColor="@color/text_primary"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="14sp"
+                android:paddingTop="10dp"
+                android:paddingBottom="8dp" />
+
+            <RadioButton
+                android:id="@+id/rb_partial_screen"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:checked="false"
+                android:clickable="false"
+                android:focusable="false"
+                android:background="@null"
+                android:button="@drawable/sel_samsung_radio" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+    <!-- ─────────────────── Section label: Audio ───────── -->
+
+        <!-- ──────────── Audio options row (fixed height for dividers) ── -->
+        <TextView
+            android:layout_width="match_parent"
+            android:layout_height="wrap_content"
+            android:fontFamily="sans-serif-medium"
+            android:paddingStart="24dp"
+            android:paddingEnd="24dp"
+            android:paddingBottom="14dp"
+            android:text="Audio to record"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp" />
+
+        <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="100dp"
+        android:orientation="horizontal"
+        android:paddingStart="24dp"
+        android:paddingEnd="24dp"
+        android:weightSum="3">
+
+        <!-- None (SELECTED) -->
+        <LinearLayout
+            android:id="@+id/option_audio_none"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/iv_audio_none"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_oui_sound_mute"
+                android:contentDescription="No audio" />
+
+            <TextView
+                android:id="@+id/tv_audio_none"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="None"
+                android:textColor="@color/accent_blue"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="14sp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp" />
+
+            <RadioButton
+                android:id="@+id/rb_audio_none"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:checked="true"
+                android:clickable="false"
+                android:focusable="false"
+                android:background="@null"
+                android:button="@drawable/sel_samsung_radio" />
+
+        </LinearLayout>
+
+        <!-- Thin vertical divider -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:background="@color/divider_color" />
+
+        <!-- Media (UNSELECTED) -->
+        <LinearLayout
+            android:id="@+id/option_audio_media"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <ImageView
+                android:id="@+id/iv_audio_media"
+                android:layout_width="28dp"
+                android:layout_height="28dp"
+                android:src="@drawable/ic_oui_sound"
+                android:contentDescription="Media audio" />
+
+            <TextView
+                android:id="@+id/tv_audio_media"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:text="Media"
+                android:textColor="@color/text_primary"
+                android:fontFamily="sans-serif-medium"
+                android:textSize="14sp"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp" />
+
+            <RadioButton
+                android:id="@+id/rb_audio_media"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:checked="false"
+                android:clickable="false"
+                android:focusable="false"
+                android:background="@null"
+                android:button="@drawable/sel_samsung_radio" />
+
+        </LinearLayout>
+
+        <!-- Thin vertical divider -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:background="@color/divider_color" />
+
+        <!-- Media and mic (UNSELECTED) -->
+        <LinearLayout
+            android:id="@+id/option_audio_media_mic"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:orientation="vertical"
+            android:gravity="center">
+
+            <LinearLayout
+                android:layout_width="wrap_content"
+                android:layout_height="28dp"
+                android:orientation="horizontal"
+                android:gravity="center">
+                <ImageView
+                    android:id="@+id/iv_audio_media_mic_1"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_oui_sound"
+                    android:contentDescription="Media audio" />
+                <ImageView
+                    android:id="@+id/iv_audio_media_mic_2"
+                    android:layout_width="26dp"
+                    android:layout_height="26dp"
+                    android:src="@drawable/ic_oui_voice"
+                    android:layout_marginStart="2dp"
+                    android:contentDescription="Mic audio" />
+            </LinearLayout>
+
+            <TextView
+                android:id="@+id/tv_audio_media_mic"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:fontFamily="sans-serif-medium"
+                android:paddingTop="8dp"
+                android:paddingBottom="8dp"
+                android:text="Media and mic"
+                android:textColor="@color/text_primary"
+                android:textSize="14sp" />
+
+            <RadioButton
+                android:id="@+id/rb_audio_media_mic"
+                android:layout_width="24dp"
+                android:layout_height="24dp"
+                android:checked="false"
+                android:clickable="false"
+                android:focusable="false"
+                android:background="@null"
+                android:button="@drawable/sel_samsung_radio" />
+
+        </LinearLayout>
+
+    </LinearLayout>
+
+
+    <!-- ─────────────── Bottom action button row ─────────── -->
+    <LinearLayout
+        android:layout_width="match_parent"
+        android:layout_height="58dp"
+        android:orientation="horizontal"
+        android:weightSum="2">
+
+        <!-- Cancel -->
+        <Button
+            android:id="@+id/btn_cancel"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Cancel"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-medium"
+            android:textAllCaps="false"
+            android:letterSpacing="0"
+            android:background="?attr/selectableItemBackground"
+            style="@style/Widget.AppCompat.Button.Borderless" />
+
+        <!-- Thin vertical divider between buttons -->
+        <View
+            android:layout_width="1dp"
+            android:layout_height="match_parent"
+            android:layout_marginTop="10dp"
+            android:layout_marginBottom="10dp"
+            android:background="@color/divider_color" />
+
+        <!-- Start recording -->
+        <Button
+            android:id="@+id/btn_start_recording"
+            android:layout_width="0dp"
+            android:layout_height="match_parent"
+            android:layout_weight="1"
+            android:text="Start recording"
+            android:textColor="@color/text_primary"
+            android:textSize="16sp"
+            android:fontFamily="sans-serif-medium"
+            android:textAllCaps="false"
+            android:letterSpacing="0"
+            android:background="?attr/selectableItemBackground"
+            style="@style/Widget.AppCompat.Button.Borderless" />
+
+    </LinearLayout>
+
+</LinearLayout>
+
+</FrameLayout>
