@@ -2,7 +2,7 @@
 
 <img src="app/src/main/res/mipmap-xhdpi/ic_launcher.webp" width="100" alt="App Icon" />
 
-# 📱 Samsung Screen Recorder
+# Samsung Screen Recorder
 
 **A lightweight, native Android screen recorder built for Samsung devices — clean UI, no bloat, no ads.**
 
