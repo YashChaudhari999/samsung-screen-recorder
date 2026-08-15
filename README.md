@@ -177,7 +177,8 @@ Found a bug or have a feature request? [Open an issue](https://github.com/YashCh
 ---
 
 ## 📄 License
-```bash
+
+```text
 MIT License
 
 Copyright (c) 2026 Yash Chaudhari
