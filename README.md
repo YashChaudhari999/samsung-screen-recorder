@@ -177,7 +177,7 @@ Found a bug or have a feature request? [Open an issue](https://github.com/YashCh
 ---
 
 ## 📄 License
-
+```bash
 MIT License
 
 Copyright (c) 2026 Yash Chaudhari
@@ -201,7 +201,7 @@ OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
-
+```
 ---
 
 <div align="center">
