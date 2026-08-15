@@ -6,7 +6,7 @@
 
 **A lightweight, native Android screen recorder built for Samsung devices — clean UI, no bloat, no ads.**
 
-[![Download APK](https://img.shields.io/badge/Download-APK-4CAF50?style=for-the-badge&logo=android&logoColor=white)](https://github.com/YashChaudhari999/samsung-screen-recorder/releases/latest/download/samsung-screen-recorder.apk)
+[![Download APK](https://img.shields.io/github/downloads/YashChaudhari999/samsung-screen-recorder/total?style=for-the-badge&logo=android&logoColor=white&color=4CAF50&label=Download%20APK)](https://github.com/YashChaudhari999/samsung-screen-recorder/releases/latest/download/samsung-screen-recorder.apk)
 [![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat-square&logo=android)](#)
 [![Release](https://img.shields.io/github/v/release/YashChaudhari999/samsung-screen-recorder?style=flat-square)](https://github.com/YashChaudhari999/samsung-screen-recorder/releases)
