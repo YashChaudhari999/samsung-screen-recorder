@@ -24,7 +24,7 @@ Grab the latest signed APK directly — no Play Store account, no sign-up.
 
 ### [⬇️ Download Latest APK](https://github.com/YashChaudhari999/samsung-screen-recorder/releases/latest/download/samsung-screen-recorder.apk)
 
-*Requires Android 8.0 (Oreo) or higher · ~6 MB · No ads, no trackers*
+*Requires Android 7.0 (Nougat) or higher · ~6 MB · No ads, no trackers*
 
 </div>
 
@@ -47,9 +47,9 @@ Grab the latest signed APK directly — no Play Store account, no sign-up.
 
 ## 🖼️ Screenshots
 
-| Home | Recording | Settings |
-|:---:|:---:|:---:|
-| ![Home](docs/screenshots/home.png) | ![Recording](docs/screenshots/recording.png) | ![Settings](docs/screenshots/settings.png) |
+| Home | Recording | Quick Settings Tile | Partial Screen Demo |
+|:---:|:---:|:---:|:---:|
+| ![Home](docs/screenshots/home.jpg) | ![Recording](docs/screenshots/recording.jpg) | ![Tile](docs/screenshots/tile.jpg) | ![Partial Screen Demo](docs/screenshots/partial_demo.jpg) |
 
 ---
 
@@ -80,10 +80,10 @@ cd samsung-screen-recorder
 
 ## 🧰 Tech Stack
 
-- **Language:** Kotlin
-- **Min SDK:** 26 (Android 8.0)
+- **Language:** Java
+- **Min SDK:** 24 (Android 7.0)
 - **Core APIs:** `MediaProjection`, `MediaCodec`, `MediaMuxer`
-- **Architecture:** MVVM
+- **Architecture:** Standard Android (Activities & Services)
 
 ---
 
