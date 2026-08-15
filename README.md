@@ -18,6 +18,14 @@
 
 ---
 
+## ☕ Support
+
+If **ScreenRecorder** is useful to you, consider supporting its continued development. ❤️
+
+Your support helps me keep the project **free, ad-free, and actively maintained**, while continuing to improve its features and user experience.
+
+[💖 Support ScreenRecorder](https://github.com/sponsors/YashChaudhari999)
+
 ## 📥 Download
 
 Grab the latest signed APK directly — no Play Store account, no sign-up.
