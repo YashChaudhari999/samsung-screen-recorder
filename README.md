@@ -18,13 +18,6 @@
 
 ---
 
-## ☕ Support
-
-If **ScreenRecorder** is useful to you, consider supporting its continued development. ❤️
-
-Your support helps me keep the project **free, ad-free, and actively maintained**, while continuing to improve its features and user experience.
-
-[💖 Support ScreenRecorder](https://github.com/sponsors/YashChaudhari999)
 
 ## 📥 Download
 
@@ -214,7 +207,13 @@ SOFTWARE.
 This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
 
 ---
+## ☕ Support
 
+If **ScreenRecorder** is useful to you, consider supporting its continued development. ❤️
+
+Your support helps me keep the project **free, ad-free, and actively maintained**, while continuing to improve its features and user experience.
+
+[💖 Support ScreenRecorder](https://github.com/sponsors/YashChaudhari999)
 <div align="center">
 
 Made with ❤️ by [Yash Chaudhari](https://github.com/YashChaudhari999)
