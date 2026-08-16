@@ -48,6 +48,14 @@ Grab the latest signed APK directly — no Play Store account, no sign-up.
 
 ---
 
+## 🎥 Demo Video
+
+<div align="center">
+  <video src="docs/Video/Demo_Screen_Recording.mp4" width="250" controls="controls"></video>
+</div>
+
+---
+
 ## 🖼️ Screenshots
 
 | Home | Recording | Quick Settings Tile | Partial Screen Demo |
