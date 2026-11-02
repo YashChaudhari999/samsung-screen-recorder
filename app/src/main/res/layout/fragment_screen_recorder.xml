@@ -7,6 +7,7 @@
     android:background="#80000000">
 
     <LinearLayout
+        android:id="@+id/dialog_container"
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_gravity="bottom"
@@ -333,8 +334,10 @@
 
     <!-- ─────────────── Bottom action button row ─────────── -->
     <LinearLayout
+        android:id="@+id/bottom_actions_container"
         android:layout_width="match_parent"
-        android:layout_height="58dp"
+        android:layout_height="wrap_content"
+        android:minHeight="56dp"
         android:orientation="horizontal"
         android:weightSum="2">
 

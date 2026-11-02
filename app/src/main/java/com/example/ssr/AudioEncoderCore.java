@@ -43,6 +43,7 @@ public class AudioEncoderCore {
     private volatile boolean mIsPaused;
     
     // Diagnostic counters
+    private volatile long mAacInputFrames = 0;
     private volatile long mTotalPcmBytesInput = 0;
     private volatile long mAacOutputBuffers = 0;
     private volatile long mTotalMicBytesRead = 0;
@@ -50,6 +51,7 @@ public class AudioEncoderCore {
     private volatile long mMicZeroReadCount = 0;
     private volatile long mMicErrorCount = 0;
     private volatile long mTotalMediaBytesRead = 0;
+    private final String mAudioMode;
 
     @SuppressLint("MissingPermission") // Caller should handle permissions
     public AudioEncoderCore(String audioMode, MediaProjection projection, MuxerWrapper muxer) throws IOException {
@@ -57,6 +59,11 @@ public class AudioEncoderCore {
         mMuxer = muxer;
         mTrackIndex = -1;
         mMuxerStarted = false;
+        mAudioMode = audioMode;
+
+        Log.i(TAG, "AUDIO_MODE=" + audioMode);
+        Log.i(TAG, "AudioRecord sample rate: " + SAMPLE_RATE);
+        Log.i(TAG, "AudioRecord channel count: 1");
 
         MediaFormat format = MediaFormat.createAudioFormat(MIME_TYPE, SAMPLE_RATE, 1);
         format.setInteger(MediaFormat.KEY_AAC_PROFILE, MediaCodecInfo.CodecProfileLevel.AACObjectLC);
@@ -73,6 +80,7 @@ public class AudioEncoderCore {
         if (bufferSize < minBufferSize) {
             bufferSize = ((minBufferSize / SAMPLES_PER_FRAME) + 1) * SAMPLES_PER_FRAME * 2;
         }
+        Log.i(TAG, "AudioRecord buffer size: " + bufferSize);
 
         boolean recordMic = "Media and mic".equals(audioMode) || "Mic".equals(audioMode);
         boolean recordMedia = "Media".equals(audioMode) || "Media and mic".equals(audioMode);
@@ -84,6 +92,9 @@ public class AudioEncoderCore {
                     AudioFormat.CHANNEL_IN_MONO,
                     AudioFormat.ENCODING_PCM_16BIT,
                     bufferSize);
+            Log.i(TAG, "AudioRecord (MIC) initialization result: " + (mMicRecord.getState() == AudioRecord.STATE_INITIALIZED ? "SUCCESS" : "FAILED"));
+            Log.i(TAG, "AudioRecord (MIC) state: " + mMicRecord.getState());
+            Log.i(TAG, "AudioRecord (MIC) recording state: " + mMicRecord.getRecordingState());
         }
 
         if (recordMedia && Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q && projection != null) {
@@ -102,6 +113,9 @@ public class AudioEncoderCore {
                             .build())
                     .setBufferSizeInBytes(bufferSize)
                     .build();
+            Log.i(TAG, "AudioRecord (MEDIA) initialization result: " + (mMediaRecord.getState() == AudioRecord.STATE_INITIALIZED ? "SUCCESS" : "FAILED"));
+            Log.i(TAG, "AudioRecord (MEDIA) state: " + mMediaRecord.getState());
+            Log.i(TAG, "AudioRecord (MEDIA) recording state: " + mMediaRecord.getRecordingState());
         } else if (recordMedia) {
             // Fallback for Android 9 and below
             if (mMicRecord == null) {
@@ -111,6 +125,7 @@ public class AudioEncoderCore {
                         AudioFormat.CHANNEL_IN_MONO,
                         AudioFormat.ENCODING_PCM_16BIT,
                         bufferSize);
+                Log.i(TAG, "AudioRecord (MIC Fallback) initialization result: " + (mMicRecord.getState() == AudioRecord.STATE_INITIALIZED ? "SUCCESS" : "FAILED"));
             }
         }
 
@@ -131,100 +146,159 @@ public class AudioEncoderCore {
             android.os.Process.setThreadPriority(android.os.Process.THREAD_PRIORITY_AUDIO);
             
             if (mMicRecord != null) {
-                Log.i(TAG, "AudioRecord startRecording (MIC). State: " + mMicRecord.getState() + ", RecordingState: " + mMicRecord.getRecordingState());
                 try {
                     mMicRecord.startRecording();
+                    Log.i(TAG, "AudioRecord startRecording (MIC). State: " + mMicRecord.getState() + ", RecordingState: " + mMicRecord.getRecordingState());
                 } catch (Exception e) {
                     Log.e(TAG, "MIC_THREAD_EXCEPTION on startRecording", e);
                 }
             }
-            if (mMediaRecord != null) mMediaRecord.startRecording();
-            Log.i(TAG, "MIC_THREAD_STARTED");
+            if (mMediaRecord != null) {
+                try {
+                    mMediaRecord.startRecording();
+                    Log.i(TAG, "AudioRecord startRecording (MEDIA). State: " + mMediaRecord.getState() + ", RecordingState: " + mMediaRecord.getRecordingState());
+                } catch (Exception e) {
+                    Log.e(TAG, "MEDIA_THREAD_EXCEPTION on startRecording", e);
+                }
+            }
+            Log.i(TAG, "AUDIO_THREAD_STARTED for mode: " + mAudioMode);
             
-            byte[] micBuf = new byte[SAMPLES_PER_FRAME * 2];
-            byte[] mediaBuf = new byte[SAMPLES_PER_FRAME * 2];
-            byte[] outBuf = new byte[SAMPLES_PER_FRAME * 2];
+            final int frameByteCount = SAMPLES_PER_FRAME * 2; // 2048 bytes (1024 16-bit mono samples)
+            byte[] micBuf = new byte[frameByteCount];
+            byte[] mediaBuf = new byte[frameByteCount];
+            byte[] outBuf = new byte[frameByteCount];
             
+            final long frameDurationUs = (1000000L * SAMPLES_PER_FRAME) / SAMPLE_RATE; // ~23219 us
             long ptsUs = System.nanoTime() / 1000;
-            long startTimeMs = System.currentTimeMillis();
-            long lastLogTime = startTimeMs;
+            long nextFrameTimeUs = ptsUs;
+            long lastLogTime = System.currentTimeMillis();
             
-            Log.i(TAG, "MIC_CAPTURE_LOOP started");
+            int mediaAccumulatedBytes = 0;
+
+            Log.i(TAG, "AUDIO_CAPTURE_LOOP started");
 
             while (mIsRecording) {
-                int micRead = 0;
-                int mediaRead = 0;
-                
+                if (mIsPaused) {
+                    try { Thread.sleep(100); } catch (InterruptedException ignored) {}
+                    ptsUs = System.nanoTime() / 1000;
+                    nextFrameTimeUs = ptsUs;
+                    continue;
+                }
+
                 long now = System.currentTimeMillis();
-                if (now - lastLogTime >= 1000) {
-                    Log.i(TAG, String.format("MIC STATUS | elapsed: %d ms | mic pcm: %d bytes (reads: %d, zero: %d, err: %d) | media pcm: %d bytes | total input: %d | aac/muxed: %d",
-                            (now - startTimeMs), mTotalMicBytesRead, mMicReadCount, mMicZeroReadCount, mMicErrorCount, mTotalMediaBytesRead, mTotalPcmBytesInput, mAacOutputBuffers));
+                if (now - lastLogTime >= 3000) {
+                    Log.i(TAG, String.format(java.util.Locale.US, "AUDIO STATUS | mode: %s | mic pcm: %d B | media pcm: %d B | total input: %d B | AAC in: %d | AAC out: %d",
+                            mAudioMode, mTotalMicBytesRead, mTotalMediaBytesRead, mTotalPcmBytesInput, mAacInputFrames, mAacOutputBuffers));
                     if (mMicRecord != null) {
                         Log.i(TAG, "MIC STATUS | state: " + mMicRecord.getState() + ", recState: " + mMicRecord.getRecordingState());
+                    }
+                    if (mMediaRecord != null) {
+                        Log.i(TAG, "MEDIA STATUS | state: " + mMediaRecord.getState() + ", recState: " + mMediaRecord.getRecordingState());
                     }
                     lastLogTime = now;
                 }
 
+                int micRead = 0;
+                int mediaRead = 0;
+
                 if (mMicRecord != null) {
+                    // Hardware mic provides blocking clock (~23.2ms per 1024 samples)
                     micRead = mMicRecord.read(micBuf, 0, micBuf.length);
                     mMicReadCount++;
                     if (micRead > 0) {
                         mTotalMicBytesRead += micRead;
-                    } else if (micRead == 0) {
-                        mMicZeroReadCount++;
-                    } else {
+                    } else if (micRead < 0) {
                         mMicErrorCount++;
-                        Log.e(TAG, "MIC_ERROR: AudioRecord.read returned " + micRead);
+                        Log.w(TAG, "MIC_ERROR: AudioRecord.read returned " + micRead);
                     }
                 }
+
                 if (mMediaRecord != null) {
-                    mediaRead = mMediaRecord.read(mediaBuf, 0, mediaBuf.length);
-                    if (mediaRead > 0) mTotalMediaBytesRead += mediaRead;
+                    int spaceRemaining = frameByteCount - mediaAccumulatedBytes;
+                    if (spaceRemaining > 0) {
+                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                            mediaRead = mMediaRecord.read(mediaBuf, mediaAccumulatedBytes, spaceRemaining, AudioRecord.READ_NON_BLOCKING);
+                        } else {
+                            mediaRead = mMediaRecord.read(mediaBuf, mediaAccumulatedBytes, spaceRemaining);
+                        }
+                        if (mediaRead > 0) {
+                            mediaAccumulatedBytes += mediaRead;
+                            mTotalMediaBytesRead += mediaRead;
+                        } else if (mediaRead < 0) {
+                            Log.w(TAG, "MEDIA_ERROR: AudioRecord.read returned " + mediaRead);
+                        }
+                    }
                 }
 
-                int maxRead = Math.max(Math.max(micRead, mediaRead), 0);
-                if (maxRead > 0) {
-                    mTotalPcmBytesInput += maxRead;
-                    // Mix the audio if both are present
-                    if (mMicRecord != null && mMediaRecord != null && micRead > 0 && mediaRead > 0) {
-                        for (int i = 0; i < maxRead; i += 2) {
-                            short micSample = (short) ((micBuf[i] & 0xFF) | (micBuf[i + 1] << 8));
-                            short mediaSample = (short) ((mediaBuf[i] & 0xFF) | (mediaBuf[i + 1] << 8));
-                            
-                            // Mix samples with clipping
-                            int mixed = micSample + mediaSample;
-                            if (mixed > Short.MAX_VALUE) mixed = Short.MAX_VALUE;
-                            if (mixed < Short.MIN_VALUE) mixed = Short.MIN_VALUE;
-                            
-                            outBuf[i] = (byte) (mixed & 0xFF);
-                            outBuf[i + 1] = (byte) ((mixed >> 8) & 0xFF);
+                if (mMicRecord != null) {
+                    // Mode: Media + Mic
+                    if (micRead > 0) {
+                        if (mMediaRecord != null && mediaAccumulatedBytes > 0) {
+                            int mixLen = Math.min(micRead, mediaAccumulatedBytes);
+                            for (int i = 0; i < mixLen; i += 2) {
+                                short micSample = (short) ((micBuf[i] & 0xFF) | (micBuf[i + 1] << 8));
+                                short mediaSample = (short) ((mediaBuf[i] & 0xFF) | (mediaBuf[i + 1] << 8));
+                                
+                                int mixed = micSample + mediaSample;
+                                if (mixed > Short.MAX_VALUE) mixed = Short.MAX_VALUE;
+                                if (mixed < Short.MIN_VALUE) mixed = Short.MIN_VALUE;
+                                
+                                outBuf[i] = (byte) (mixed & 0xFF);
+                                outBuf[i + 1] = (byte) ((mixed >> 8) & 0xFF);
+                            }
+                            if (micRead > mixLen) {
+                                System.arraycopy(micBuf, mixLen, outBuf, mixLen, micRead - mixLen);
+                            }
+                            mediaAccumulatedBytes = 0;
+                        } else {
+                            System.arraycopy(micBuf, 0, outBuf, 0, micRead);
                         }
-                    } else if (micRead > 0) {
-                        System.arraycopy(micBuf, 0, outBuf, 0, micRead);
-                    } else if (mediaRead > 0) {
-                        System.arraycopy(mediaBuf, 0, outBuf, 0, mediaRead);
+
+                        mTotalPcmBytesInput += micRead;
+                        encode(outBuf, micRead, ptsUs);
+                        ptsUs += (1000000L * (micRead / 2)) / SAMPLE_RATE;
+                    }
+                } else if (mMediaRecord != null) {
+                    // Mode: Media only (clock-paced with silence insertion when inactive)
+                    long nowUs = System.nanoTime() / 1000;
+                    if (nowUs < nextFrameTimeUs && mediaAccumulatedBytes < frameByteCount) {
+                        long waitMs = (nextFrameTimeUs - nowUs) / 1000;
+                        if (waitMs > 1) {
+                            try { Thread.sleep(Math.min(waitMs, 10)); } catch (InterruptedException ignored) {}
+                        }
+                        continue;
                     }
 
-                    if (!mIsPaused) {
-                        encode(outBuf, maxRead, ptsUs);
+                    // Reached frame deadline: if media audio didn't fill buffer (or was silent), pad remainder with 0
+                    if (mediaAccumulatedBytes < frameByteCount) {
+                        java.util.Arrays.fill(mediaBuf, mediaAccumulatedBytes, frameByteCount, (byte) 0);
                     }
-                    ptsUs += (1000000L * maxRead / 2) / SAMPLE_RATE;
+                    System.arraycopy(mediaBuf, 0, outBuf, 0, frameByteCount);
+                    mediaAccumulatedBytes = 0;
+
+                    mTotalPcmBytesInput += frameByteCount;
+                    encode(outBuf, frameByteCount, ptsUs);
+                    ptsUs += frameDurationUs;
+                    nextFrameTimeUs += frameDurationUs;
                 }
             }
 
             if (mMicRecord != null) {
-                mMicRecord.stop();
-                mMicRecord.release();
+                try {
+                    mMicRecord.stop();
+                    mMicRecord.release();
+                } catch (Exception ignored) {}
                 mMicRecord = null;
             }
             if (mMediaRecord != null) {
-                mMediaRecord.stop();
-                mMediaRecord.release();
+                try {
+                    mMediaRecord.stop();
+                    mMediaRecord.release();
+                } catch (Exception ignored) {}
                 mMediaRecord = null;
             }
             
-            Log.i(TAG, "MIC_THREAD_EXITED");
-            // signal EOF
+            Log.i(TAG, "AUDIO_THREAD_EXITED");
             encode(null, 0, ptsUs);
         }
     }
@@ -232,21 +306,27 @@ public class AudioEncoderCore {
     private void encode(byte[] buf, int length, long ptsUs) {
         if (!mIsRecording && buf != null) return;
         
-        ByteBuffer[] inputBuffers = mEncoder.getInputBuffers();
-        while (true) {
+        while (mIsRecording || buf == null) {
             int inputBufferIndex = mEncoder.dequeueInputBuffer(TIMEOUT_USEC);
             if (inputBufferIndex >= 0) {
-                ByteBuffer inputBuffer = inputBuffers[inputBufferIndex];
-                inputBuffer.clear();
-                if (buf != null && length > 0) {
-                    inputBuffer.put(buf, 0, length);
-                    mEncoder.queueInputBuffer(inputBufferIndex, 0, length, ptsUs, 0);
-                } else {
-                    mEncoder.queueInputBuffer(inputBufferIndex, 0, 0, ptsUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                ByteBuffer inputBuffer = mEncoder.getInputBuffer(inputBufferIndex);
+                if (inputBuffer != null) {
+                    inputBuffer.clear();
+                    if (buf != null && length > 0) {
+                        inputBuffer.put(buf, 0, length);
+                        mAacInputFrames++;
+                        mEncoder.queueInputBuffer(inputBufferIndex, 0, length, ptsUs, 0);
+                    } else {
+                        mEncoder.queueInputBuffer(inputBufferIndex, 0, 0, ptsUs, MediaCodec.BUFFER_FLAG_END_OF_STREAM);
+                    }
                 }
                 break;
             } else if (inputBufferIndex == MediaCodec.INFO_TRY_AGAIN_LATER) {
-                // wait
+                if (buf == null) {
+                    // End of stream, retry until buffer is accepted
+                    continue;
+                }
+                break;
             }
         }
 
@@ -254,13 +334,10 @@ public class AudioEncoderCore {
     }
 
     private void drainEncoder() {
-        ByteBuffer[] outputBuffers = mEncoder.getOutputBuffers();
         while (true) {
             int encoderStatus = mEncoder.dequeueOutputBuffer(mBufferInfo, TIMEOUT_USEC);
             if (encoderStatus == MediaCodec.INFO_TRY_AGAIN_LATER) {
                 break;
-            } else if (encoderStatus == MediaCodec.INFO_OUTPUT_BUFFERS_CHANGED) {
-                outputBuffers = mEncoder.getOutputBuffers();
             } else if (encoderStatus == MediaCodec.INFO_OUTPUT_FORMAT_CHANGED) {
                 if (mMuxerStarted) {
                     throw new RuntimeException("format changed twice");
@@ -268,27 +345,26 @@ public class AudioEncoderCore {
                 MediaFormat newFormat = mEncoder.getOutputFormat();
                 mTrackIndex = mMuxer.addTrack(newFormat);
                 mMuxerStarted = true;
+                Log.i(TAG, "muxer audio track creation: trackIndex=" + mTrackIndex);
             } else if (encoderStatus < 0) {
                 Log.w(TAG, "unexpected result from encoder.dequeueOutputBuffer: " + encoderStatus);
             } else {
-                ByteBuffer encodedData = outputBuffers[encoderStatus];
-                if (encodedData == null) {
-                    throw new RuntimeException("encoderOutputBuffer " + encoderStatus + " was null");
-                }
-
-                if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
-                    mBufferInfo.size = 0;
-                }
-
-                if (mBufferInfo.size != 0) {
-                    if (!mMuxerStarted) {
-                        throw new RuntimeException("muxer hasn't started");
+                ByteBuffer encodedData = mEncoder.getOutputBuffer(encoderStatus);
+                if (encodedData != null) {
+                    if ((mBufferInfo.flags & MediaCodec.BUFFER_FLAG_CODEC_CONFIG) != 0) {
+                        mBufferInfo.size = 0;
                     }
-                    encodedData.position(mBufferInfo.offset);
-                    encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
 
-                    mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
-                    mAacOutputBuffers++;
+                    if (mBufferInfo.size != 0) {
+                        if (!mMuxerStarted) {
+                            throw new RuntimeException("muxer hasn't started");
+                        }
+                        encodedData.position(mBufferInfo.offset);
+                        encodedData.limit(mBufferInfo.offset + mBufferInfo.size);
+
+                        mMuxer.writeSampleData(mTrackIndex, encodedData, mBufferInfo);
+                        mAacOutputBuffers++;
+                    }
                 }
 
                 mEncoder.releaseOutputBuffer(encoderStatus, false);

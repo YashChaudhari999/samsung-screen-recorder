@@ -51,28 +51,26 @@ public class PermissionProxyActivity extends Activity {
         
         if (requestCode == REQ_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
+                mMediaResultCode = resultCode;
+                mMediaResultData = data;
                 if (mAreaMode == 1 /* AREA_PARTIAL_SCREEN */) {
-                    mMediaResultCode = resultCode;
-                    mMediaResultData = data;
-                    Intent cropIntent = new Intent(this, CropOverlayActivity.class);
-                    startActivityForResult(cropIntent, REQ_CROP_OVERLAY);
+                    new CropSelectionOverlay(getApplicationContext(), new CropSelectionOverlay.Callback() {
+                        @Override
+                        public void onCropConfirmed(android.graphics.Rect cropRect) {
+                            startRecordingFlow(mMediaResultCode, mMediaResultData, cropRect);
+                        }
+
+                        @Override
+                        public void onCropCancelled() {
+                            Log.i(TAG, "Partial-screen crop cancelled by user");
+                            finish();
+                        }
+                    }).show();
                 } else {
                     startRecordingFlow(resultCode, data, null);
                 }
             } else {
                 Log.w(TAG, "MediaProjection denied or cancelled by user");
-                finish();
-            }
-        } else if (requestCode == REQ_CROP_OVERLAY) {
-            if (resultCode == RESULT_OK && data != null) {
-                android.graphics.Rect rect = new android.graphics.Rect(
-                        data.getIntExtra("crop_left", 0),
-                        data.getIntExtra("crop_top", 0),
-                        data.getIntExtra("crop_right", 0),
-                        data.getIntExtra("crop_bottom", 0)
-                );
-                startRecordingFlow(mMediaResultCode, mMediaResultData, rect);
-            } else {
                 finish();
             }
         }
@@ -88,16 +86,9 @@ public class PermissionProxyActivity extends Activity {
 
         if (cropRect != null) {
             serviceIntent.putExtra("crop_rect", cropRect);
-            // Countdown was already done in CropOverlayActivity, start immediately
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                startForegroundService(serviceIntent);
-            } else {
-                startService(serviceIntent);
-            }
-            finish();
-        } else {
-            // Full screen mode needs the global countdown
-            new CountdownOverlay(this, serviceIntent, this::finish).show();
         }
+
+        // Run countdown (3, 2, 1) cleanly before starting RecordingService
+        new CountdownOverlay(this, serviceIntent, this::finish).show();
     }
 }

@@ -85,10 +85,12 @@ public class RecordingService extends Service {
         
         WindowManager wm = (WindowManager) getSystemService(Context.WINDOW_SERVICE);
         DisplayMetrics metrics = new DisplayMetrics();
-        wm.getDefaultDisplay().getMetrics(metrics);
-        mScreenDensity = metrics.densityDpi;
-        mScreenWidth = metrics.widthPixels;
-        mScreenHeight = metrics.heightPixels;
+        if (wm != null) {
+            wm.getDefaultDisplay().getRealMetrics(metrics);
+            mScreenDensity = metrics.densityDpi;
+            mScreenWidth = metrics.widthPixels;
+            mScreenHeight = metrics.heightPixels;
+        }
         
         // Ensure even dimensions for video codec
         if (mScreenWidth % 2 != 0) mScreenWidth--;
@@ -126,9 +128,9 @@ public class RecordingService extends Service {
         Intent resultData = intent.getParcelableExtra(EXTRA_RESULT_DATA);
         String audioMode = intent.getStringExtra(EXTRA_AUDIO_MODE);
         
-        boolean needsMic = "Media and mic".equals(audioMode) || "Mic".equals(audioMode);
-        if (needsMic && androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
-            Log.e(TAG, "RECORD_AUDIO permission is missing! Cannot start microphone recording.");
+        boolean hasAudio = !"None".equals(audioMode);
+        if (hasAudio && androidx.core.content.ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            Log.e(TAG, "RECORD_AUDIO permission is missing! Cannot start audio recording for mode: " + audioMode);
             stopSelf();
             return;
         }
@@ -150,25 +152,9 @@ public class RecordingService extends Service {
             
             mMediaProjection.registerCallback(mMediaProjectionCallback, new Handler(Looper.getMainLooper()));
             
-            android.graphics.Rect cropRect = intent.getParcelableExtra("crop_rect");
-            int areaMode = intent.getIntExtra(EXTRA_AREA_MODE, 0);
-
-            if (areaMode == 1 && cropRect != null) {
-                // Partial screen mode: show overlay and wait for countdown
-                mPartialScreenOverlay = new PartialScreenOverlay(this, cropRect, new PartialScreenOverlay.Callback() {
-                    @Override
-                    public void onCountdownFinished() {
-                        startRecordingInternal(intent);
-                        if (mPartialScreenOverlay != null) {
-                            mPartialScreenOverlay.startRecordingTimer();
-                        }
-                    }
-                });
-                mPartialScreenOverlay.showCountdown();
-            } else {
-                // Full screen mode: countdown already done, start immediately
-                startRecordingInternal(intent);
-            }
+            // Selection UI was already confirmed and closed before service started.
+            // Start recording directly with immutable cropRect.
+            startRecordingInternal(intent);
         } else {
             Log.e(TAG, "Result code or data missing");
             stopSelf();
@@ -226,9 +212,18 @@ public class RecordingService extends Service {
             // Ensure a reasonable minimum size
             if (encWidth < 128) encWidth = 128;
             if (encHeight < 128) encHeight = 128;
+
+            if (encWidth > mScreenWidth) encWidth = mScreenWidth - (mScreenWidth % 16);
+            if (encHeight > mScreenHeight) encHeight = mScreenHeight - (mScreenHeight % 16);
             
-            // Adjust cropRect to match the final encoder dimensions to avoid distortion
+            // Adjust cropRect safely within screen bounds
+            if (cropRect.left + encWidth > mScreenWidth) {
+                cropRect.left = Math.max(0, mScreenWidth - encWidth);
+            }
             cropRect.right = cropRect.left + encWidth;
+            if (cropRect.top + encHeight > mScreenHeight) {
+                cropRect.top = Math.max(0, mScreenHeight - encHeight);
+            }
             cropRect.bottom = cropRect.top + encHeight;
         }
 
@@ -243,10 +238,16 @@ public class RecordingService extends Service {
         android.view.Surface virtualDisplaySurface;
         
         if (cropRect != null) {
-            mGLWrapper = new GLRenderWrapper(encoderSurface, encWidth, encHeight, mScreenWidth, mScreenHeight, cropRect);
+            final android.graphics.Rect immutableCropRect = new android.graphics.Rect(cropRect);
+            mGLWrapper = new GLRenderWrapper(encoderSurface, encWidth, encHeight, mScreenWidth, mScreenHeight, immutableCropRect);
             mGLWrapper.start();
             Log.d(TAG, "GL_WRAPPER_STARTED");
             virtualDisplaySurface = mGLWrapper.getInputSurface();
+
+            // Show pass-through grey dim overlay on the non-recorded part of the screen
+            final PartialScreenOverlay overlay = new PartialScreenOverlay(this, immutableCropRect);
+            mPartialScreenOverlay = overlay;
+            new Handler(Looper.getMainLooper()).post(overlay::showDimOverlay);
         } else {
             virtualDisplaySurface = encoderSurface;
         }
@@ -268,10 +269,15 @@ public class RecordingService extends Service {
         mVideoThread = new Thread(() -> {
             try {
                 while (mIsRecording) {
+                    if (mIsPaused) {
+                        Thread.sleep(100);
+                        continue;
+                    }
                     mVideoEncoder.drainEncoder(false);
-                    Thread.sleep(10);
+                    Thread.sleep(20);
                 }
                 mVideoEncoder.drainEncoder(true);
+            } catch (InterruptedException ignored) {
             } catch (Exception e) {
                 Log.e(TAG, "Video encoder thread error", e);
             }
@@ -300,6 +306,9 @@ public class RecordingService extends Service {
         if (mAudioEncoder != null) {
             mAudioEncoder.setPaused(true);
         }
+        if (mGLWrapper != null) {
+            mGLWrapper.setPaused(true);
+        }
         if (mPartialScreenOverlay != null) {
             mPartialScreenOverlay.pauseTimer();
         }
@@ -313,6 +322,9 @@ public class RecordingService extends Service {
         }
         if (mAudioEncoder != null) {
             mAudioEncoder.setPaused(false);
+        }
+        if (mGLWrapper != null) {
+            mGLWrapper.setPaused(false);
         }
         if (mPartialScreenOverlay != null) {
             mPartialScreenOverlay.resumeTimer();
@@ -408,7 +420,10 @@ public class RecordingService extends Service {
         }
     }
 
-    private void stopRecording() {
+    private synchronized void stopRecording() {
+        if (!mIsRecording && mVirtualDisplay == null && mMediaProjection == null && mVideoEncoder == null) {
+            return;
+        }
         mIsRecording = false;
         SSRStateManager.getInstance().setRecording(false);
         // Notify QS tile so it flips back to INACTIVE (Samsung pattern)
@@ -417,13 +432,15 @@ public class RecordingService extends Service {
 
 
         if (mFloatingRecorderControl != null) {
-            new Handler(Looper.getMainLooper()).post(() -> mFloatingRecorderControl.hide());
+            final FloatingRecorderControl controlToHide = mFloatingRecorderControl;
             mFloatingRecorderControl = null;
+            new Handler(Looper.getMainLooper()).post(controlToHide::hide);
         }
 
         if (mPartialScreenOverlay != null) {
-            new Handler(Looper.getMainLooper()).post(() -> mPartialScreenOverlay.hide());
+            final PartialScreenOverlay overlayToHide = mPartialScreenOverlay;
             mPartialScreenOverlay = null;
+            new Handler(Looper.getMainLooper()).post(overlayToHide::hide);
         }
 
         if (mAudioEncoder != null) {

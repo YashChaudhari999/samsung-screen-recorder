@@ -9,11 +9,19 @@ import android.widget.LinearLayout;
 import android.widget.RadioButton;
 import android.widget.TextView;
 
+import android.content.res.Configuration;
+import android.os.Build;
+import android.view.Gravity;
+import android.view.View;
+import android.view.WindowManager;
+import android.widget.FrameLayout;
+
 import androidx.activity.EdgeToEdge;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.core.content.ContextCompat;
 import androidx.core.graphics.Insets;
 import androidx.core.view.ViewCompat;
+import androidx.core.view.WindowCompat;
 import androidx.core.view.WindowInsetsCompat;
 
 import com.google.android.material.switchmaterial.SwitchMaterial;
@@ -26,6 +34,9 @@ public class MainActivity extends AppCompatActivity {
     public static final int AUDIO_NONE         = 0;
     public static final int AUDIO_MEDIA        = 1;
     public static final int AUDIO_MEDIA_AND_MIC = 2;
+
+    private static final String KEY_SELECTED_AREA = "selected_area";
+    private static final String KEY_SELECTED_AUDIO = "selected_audio";
 
     private int selectedArea  = AREA_FULL_SCREEN;
     private int selectedAudio = AUDIO_NONE;
@@ -50,6 +61,20 @@ public class MainActivity extends AppCompatActivity {
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
+        if (savedInstanceState != null) {
+            selectedArea = savedInstanceState.getInt(KEY_SELECTED_AREA, AREA_FULL_SCREEN);
+            selectedAudio = savedInstanceState.getInt(KEY_SELECTED_AUDIO, AUDIO_NONE);
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.P) {
+            WindowManager.LayoutParams wlp = getWindow().getAttributes();
+            wlp.layoutInDisplayCutoutMode = WindowManager.LayoutParams.LAYOUT_IN_DISPLAY_CUTOUT_MODE_SHORT_EDGES;
+            getWindow().setAttributes(wlp);
+        }
+        WindowCompat.setDecorFitsSystemWindows(getWindow(), false);
+        getWindow().setStatusBarColor(android.graphics.Color.TRANSPARENT);
+        getWindow().setNavigationBarColor(android.graphics.Color.TRANSPARENT);
+
         EdgeToEdge.enable(this);
         setContentView(R.layout.fragment_screen_recorder);
 
@@ -57,19 +82,47 @@ public class MainActivity extends AppCompatActivity {
         clrTextPrimary = ContextCompat.getColor(this, R.color.text_primary);
         clrIconUnselected = ContextCompat.getColor(this, R.color.icon_unselected);
 
-        android.view.View root = findViewById(R.id.main_root);
+        View root = findViewById(R.id.main_root);
+        View dialogContainer = findViewById(R.id.dialog_container);
+        View bottomActions = findViewById(R.id.bottom_actions_container);
         if (root != null) {
             ViewCompat.setOnApplyWindowInsetsListener(root, (v, insets) -> {
-                Insets systemBars = insets.getInsets(WindowInsetsCompat.Type.systemBars());
-                v.setPadding(systemBars.left, systemBars.top, systemBars.right, systemBars.bottom);
+                Insets bars = insets.getInsets(
+                        WindowInsetsCompat.Type.systemBars() | WindowInsetsCompat.Type.displayCutout());
+                if (dialogContainer != null) {
+                    FrameLayout.LayoutParams lp = (FrameLayout.LayoutParams) dialogContainer.getLayoutParams();
+                    lp.gravity = Gravity.BOTTOM;
+                    lp.leftMargin = 0;
+                    lp.rightMargin = 0;
+                    lp.topMargin = 0;
+                    lp.bottomMargin = 0;
+                    dialogContainer.setLayoutParams(lp);
+
+                    if (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) {
+                        // Symmetrical side padding so content is centered and safely inside display cutout / nav bar
+                        int sideCutoutOrBar = Math.max(bars.left, bars.right);
+                        int sidePad = Math.max(sideCutoutOrBar, (int) (24 * getResources().getDisplayMetrics().density));
+                        dialogContainer.setPadding(sidePad, 0, sidePad, 0);
+                    } else {
+                        dialogContainer.setPadding(bars.left, 0, bars.right, 0);
+                    }
+                }
+                if (bottomActions != null) {
+                    int bottomInset = bars.bottom;
+                    int baseHeightDp = (getResources().getConfiguration().orientation == Configuration.ORIENTATION_LANDSCAPE) ? 52 : 56;
+                    int baseHeightPx = (int) (baseHeightDp * getResources().getDisplayMetrics().density);
+                    android.view.ViewGroup.LayoutParams blp = bottomActions.getLayoutParams();
+                    blp.height = baseHeightPx + bottomInset;
+                    bottomActions.setLayoutParams(blp);
+                    bottomActions.setPadding(0, 0, 0, bottomInset);
+                }
                 return insets;
             });
-            // Dismiss activity when clicking outside the bottom sheet
+            // Dismiss activity when clicking outside the dialog container
             root.setOnClickListener(v -> finish());
         }
 
         bindViews();
-
 
         refreshAreaUI();
         refreshAudioUI();
@@ -139,9 +192,10 @@ public class MainActivity extends AppCompatActivity {
                 return;
             }
 
-            if (selectedAudio != AUDIO_NONE && ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
+            boolean needsAudioPermission = (selectedAudio == AUDIO_MEDIA || selectedAudio == AUDIO_MEDIA_AND_MIC);
+            if (needsAudioPermission && ContextCompat.checkSelfPermission(this, android.Manifest.permission.RECORD_AUDIO) != android.content.pm.PackageManager.PERMISSION_GRANTED) {
                 requestPermissions(new String[]{android.Manifest.permission.RECORD_AUDIO}, 100);
-                android.widget.Toast.makeText(this, "Please grant audio recording permission.", android.widget.Toast.LENGTH_LONG).show();
+                android.widget.Toast.makeText(this, "Please grant audio recording permission to record audio.", android.widget.Toast.LENGTH_LONG).show();
                 return;
             }
 
@@ -226,5 +280,12 @@ public class MainActivity extends AppCompatActivity {
                 anim.start();
             }
         }
+    }
+
+    @Override
+    protected void onSaveInstanceState(Bundle outState) {
+        super.onSaveInstanceState(outState);
+        outState.putInt(KEY_SELECTED_AREA, selectedArea);
+        outState.putInt(KEY_SELECTED_AUDIO, selectedAudio);
     }
 }

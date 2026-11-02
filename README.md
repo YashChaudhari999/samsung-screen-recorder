@@ -39,6 +39,7 @@ Grab the latest signed APK directly — no Play Store account, no sign-up.
 
 - 🎥 **Native screen recording** using Android's `MediaProjection` API
 - 🎨 **One UI–inspired interface** that feels right at home on Samsung devices
+- 📱 Responsive **portrait & landscape** layouts with accessible, prominent recording controls
 - 🎙️ Record with **internal audio, microphone, or both**
 - ⏸️ **Pause & resume** recordings on the fly
 - 🕒 On-screen countdown before recording starts

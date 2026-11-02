@@ -30,6 +30,10 @@ public class GLRenderWrapper implements SurfaceTexture.OnFrameAvailableListener 
     private int mProgram;
     
     private final float[] mSTMatrix = new float[16];
+    private final float[] mMVPMatrix = new float[16];
+    private final float[] mCropTransform = new float[16];
+    private final float[] mFinalSTMatrix = new float[16];
+    private volatile boolean mIsPaused = false;
     
     private int mWidth;
     private int mHeight;
@@ -89,6 +93,30 @@ public class GLRenderWrapper implements SurfaceTexture.OnFrameAvailableListener 
                 mTriangleVerticesData.length * 4)
                 .order(ByteOrder.nativeOrder()).asFloatBuffer();
         mTriangleVertices.put(mTriangleVerticesData).position(0);
+
+        Matrix.setIdentityM(mMVPMatrix, 0);
+
+        if (mCropRect != null && mScreenWidth > 0 && mScreenHeight > 0) {
+            float cropLeft = (float) mCropRect.left / mScreenWidth;
+            float cropRight = (float) mCropRect.right / mScreenWidth;
+            float cropTop = (float) mCropRect.top / mScreenHeight;
+            float cropBottom = (float) mCropRect.bottom / mScreenHeight;
+            
+            float widthScale = cropRight - cropLeft;
+            float heightScale = cropBottom - cropTop;
+            
+            Matrix.setIdentityM(mCropTransform, 0);
+            // In SurfaceTexture coordinate space where v=0 is bottom and v=1 is top,
+            // screen top (cropTop) maps to (1.0f - cropTop), screen bottom (cropBottom) maps to (1.0f - cropBottom).
+            Matrix.translateM(mCropTransform, 0, cropLeft, 1.0f - cropBottom, 0);
+            Matrix.scaleM(mCropTransform, 0, widthScale, heightScale, 1.0f);
+        } else {
+            Matrix.setIdentityM(mCropTransform, 0);
+        }
+    }
+
+    public void setPaused(boolean paused) {
+        mIsPaused = paused;
     }
     
     public void start() {
@@ -111,6 +139,9 @@ public class GLRenderWrapper implements SurfaceTexture.OnFrameAvailableListener 
         makeCurrent();
         setupGL();
         
+        long lastRenderTimeNs = 0;
+        final long minFrameIntervalNs = 32_000_000L; // Target ~30-31 fps max
+
         while (mRunning) {
             synchronized (mFrameSyncObject) {
                 while (!mFrameAvailable && mRunning) {
@@ -124,8 +155,23 @@ public class GLRenderWrapper implements SurfaceTexture.OnFrameAvailableListener 
                 mFrameAvailable = false;
             }
             
-            mInputSurfaceTexture.updateTexImage();
-            mInputSurfaceTexture.getTransformMatrix(mSTMatrix);
+            try {
+                mInputSurfaceTexture.updateTexImage();
+                mInputSurfaceTexture.getTransformMatrix(mSTMatrix);
+            } catch (Exception e) {
+                continue;
+            }
+
+            if (mIsPaused) {
+                continue;
+            }
+
+            long nowNs = System.nanoTime();
+            if (nowNs - lastRenderTimeNs < minFrameIntervalNs) {
+                // Drop excess frame to maintain 30 FPS cap and protect GPU/CPU from overheating
+                continue;
+            }
+            lastRenderTimeNs = nowNs;
             
             drawFrame();
             
@@ -137,9 +183,6 @@ public class GLRenderWrapper implements SurfaceTexture.OnFrameAvailableListener 
     }
 
     private void drawFrame() {
-        GLES20.glClearColor(0.0f, 0.0f, 0.0f, 1.0f);
-        GLES20.glClear(GLES20.GL_COLOR_BUFFER_BIT);
-        
         GLES20.glUseProgram(mProgram);
         
         GLES20.glActiveTexture(GLES20.GL_TEXTURE0);
@@ -154,37 +197,14 @@ public class GLRenderWrapper implements SurfaceTexture.OnFrameAvailableListener 
                 5 * 4, mTriangleVertices);
         GLES20.glEnableVertexAttribArray(maTextureHandle);
         
-        float[] mvpMatrix = new float[16];
-        Matrix.setIdentityM(mvpMatrix, 0);
-        
         if (mCropRect != null) {
-            // Apply crop. Virtual display writes to texture using SurfaceTexture's matrix.
-            // By applying our transform AFTER mSTMatrix, we can operate in standard
-            // top-down normalized screen coordinates (0..1).
-            float cropLeft = (float) mCropRect.left / mScreenWidth;
-            float cropRight = (float) mCropRect.right / mScreenWidth;
-            float cropTop = (float) mCropRect.top / mScreenHeight;
-            float cropBottom = (float) mCropRect.bottom / mScreenHeight;
-            
-            float widthScale = cropRight - cropLeft;
-            float heightScale = cropBottom - cropTop;
-            
-            // Adjust STMatrix to sample the cropped region
-            float[] transform = new float[16];
-            Matrix.setIdentityM(transform, 0);
-            Matrix.translateM(transform, 0, cropLeft, cropTop, 0);
-            Matrix.scaleM(transform, 0, widthScale, heightScale, 1.0f);
-            
-            float[] finalST = new float[16];
-            // Multiply: finalST = transform * mSTMatrix
-            // This applies mSTMatrix first, then our custom crop transform
-            Matrix.multiplyMM(finalST, 0, transform, 0, mSTMatrix, 0);
-            System.arraycopy(finalST, 0, mSTMatrix, 0, 16);
+            Matrix.multiplyMM(mFinalSTMatrix, 0, mSTMatrix, 0, mCropTransform, 0);
+            GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mFinalSTMatrix, 0);
+        } else {
+            GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
         }
         
-        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mvpMatrix, 0);
-        GLES20.glUniformMatrix4fv(muSTMatrixHandle, 1, false, mSTMatrix, 0);
-        
+        GLES20.glUniformMatrix4fv(muMVPMatrixHandle, 1, false, mMVPMatrix, 0);
         GLES20.glDrawArrays(GLES20.GL_TRIANGLE_STRIP, 0, 4);
     }
     

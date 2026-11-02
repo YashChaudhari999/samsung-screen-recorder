@@ -114,6 +114,7 @@ public class FloatingRecorderControl {
             if (mParams.x + initialWindowWidth > mScreenWidth) {
                 mParams.x = mScreenWidth - initialWindowWidth - 16;
             }
+            clampOutsideCropRect(initialWindowWidth, mFloatingView.getMeasuredHeight());
             int centerScreenX = mScreenWidth / 2;
             mIsAttachedToRightEdge = mParams.x > centerScreenX;
         } else {
@@ -136,6 +137,28 @@ public class FloatingRecorderControl {
         mWindowManager.addView(mFloatingView, mParams);
         
         startTimer();
+    }
+
+    private void clampOutsideCropRect(int windowWidth, int windowHeight) {
+        if (mCropRect == null) return;
+        android.graphics.Rect controlRect = new android.graphics.Rect(
+                mParams.x, mParams.y, mParams.x + windowWidth, mParams.y + windowHeight);
+        if (android.graphics.Rect.intersects(controlRect, mCropRect)) {
+            boolean canDown = mCropRect.bottom + windowHeight + 16 <= mScreenHeight;
+            boolean canUp = mCropRect.top - windowHeight - 16 >= 0;
+            boolean canRight = mCropRect.right + windowWidth + 16 <= mScreenWidth;
+            boolean canLeft = mCropRect.left - windowWidth - 16 >= 0;
+
+            if (canDown) {
+                mParams.y = mCropRect.bottom + 16;
+            } else if (canUp) {
+                mParams.y = mCropRect.top - windowHeight - 16;
+            } else if (canRight) {
+                mParams.x = mCropRect.right + 16;
+            } else if (canLeft) {
+                mParams.x = mCropRect.left - windowWidth - 16;
+            }
+        }
     }
 
     private void setupInteractions() {
@@ -198,6 +221,7 @@ public class FloatingRecorderControl {
                     if (mParams.x > mScreenWidth - windowWidth) mParams.x = mScreenWidth - windowWidth;
                     if (mParams.y < 0) mParams.y = 0;
                     if (mParams.y > mScreenHeight - windowHeight) mParams.y = mScreenHeight - windowHeight;
+                    clampOutsideCropRect(windowWidth, windowHeight);
                     
                     mWindowManager.updateViewLayout(mFloatingView, mParams);
                     return true;

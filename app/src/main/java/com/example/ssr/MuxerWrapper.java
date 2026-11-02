@@ -50,14 +50,18 @@ public class MuxerWrapper {
         if (!mIsStarted) {
             Log.w(TAG, "writeSampleData called before muxer started. Waiting...");
             try {
-                wait();
+                wait(2500);
             } catch (InterruptedException e) {
                 Log.e(TAG, "Interrupted while waiting for muxer to start", e);
                 return;
             }
         }
-        if (bufferInfo.size > 0 && bufferInfo.presentationTimeUs > 0) {
-            mMediaMuxer.writeSampleData(trackIndex, byteBuf, bufferInfo);
+        if (mIsStarted && bufferInfo.size > 0 && bufferInfo.presentationTimeUs >= 0) {
+            try {
+                mMediaMuxer.writeSampleData(trackIndex, byteBuf, bufferInfo);
+            } catch (Exception e) {
+                Log.e(TAG, "Error writing sample data to muxer", e);
+            }
         }
     }
 
@@ -67,15 +71,19 @@ public class MuxerWrapper {
                 Log.i(TAG, "Stopping muxer");
                 try {
                     mMediaMuxer.stop();
-                    mMediaMuxer.release();
                 } catch (Exception e) {
                     Log.e(TAG, "Error stopping muxer", e);
                 }
             } else {
                 Log.i(TAG, "Muxer never started, just releasing");
+            }
+            try {
                 mMediaMuxer.release();
+            } catch (Exception e) {
+                Log.e(TAG, "Error releasing muxer", e);
             }
             mMediaMuxer = null;
+            mIsStarted = false;
         }
     }
 }
