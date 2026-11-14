@@ -12,5 +12,9 @@ captures/
 *.keystore
 keystore/
 rea/
+rea
+.agents/
+.agents
+skills-lock.json
 *.jpg
 *.png

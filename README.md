@@ -42,6 +42,7 @@ Grab the latest signed APK directly — no Play Store account, no sign-up.
 - 📱 Responsive **portrait & landscape** layouts with accessible, prominent recording controls
 - 🎙️ Record with **internal audio, microphone, or both**
 - ⏸️ **Pause & resume** recordings on the fly
+- 🔒 **Screen lock session continuity** with automatic pause/resume and seamless multi-segment MP4 stitching
 - 🕒 On-screen countdown before recording starts
 - 📁 Auto-saves recordings to a dedicated folder for easy access
 - 🌙 Full **dark mode** support

@@ -257,6 +257,11 @@ public class AudioEncoderCore {
                         mTotalPcmBytesInput += micRead;
                         encode(outBuf, micRead, ptsUs);
                         ptsUs += (1000000L * (micRead / 2)) / SAMPLE_RATE;
+                    } else {
+                        // Prevent CPU busy-spinning when mic read returns 0 or error (e.g. during screen-off/lock)
+                        try {
+                            Thread.sleep(20);
+                        } catch (InterruptedException ignored) {}
                     }
                 } else if (mMediaRecord != null) {
                     // Mode: Media only (clock-paced with silence insertion when inactive)

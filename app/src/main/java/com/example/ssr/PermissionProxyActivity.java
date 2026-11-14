@@ -3,6 +3,7 @@ package com.example.ssr;
 import android.app.Activity;
 import android.content.Intent;
 import android.media.projection.MediaProjectionManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 
@@ -21,10 +22,10 @@ import android.util.Log;
 public class PermissionProxyActivity extends Activity {
 
     private static final String TAG = "PermissionProxyActivity";
+    public static final String EXTRA_IS_RESUME = "is_resume";
     private static final int REQ_MEDIA_PROJECTION = 1001;
-    private static final int REQ_WRITE_SETTINGS = 1002;
-    private static final int REQ_CROP_OVERLAY = 1003;
 
+    private boolean mIsResume;
     private String mAudioMode;
     private int mAreaMode;
 
@@ -35,14 +36,41 @@ public class PermissionProxyActivity extends Activity {
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
         
+        mIsResume = getIntent().getBooleanExtra(EXTRA_IS_RESUME, false);
         mAudioMode = getIntent().getStringExtra(RecordingService.EXTRA_AUDIO_MODE);
         mAreaMode = getIntent().getIntExtra(RecordingService.EXTRA_AREA_MODE, 0);
         requestMediaProjection();
     }
 
+    @Override
+    protected void onNewIntent(Intent intent) {
+        super.onNewIntent(intent);
+        setIntent(intent);
+        mIsResume = intent.getBooleanExtra(EXTRA_IS_RESUME, false);
+        mAudioMode = intent.getStringExtra(RecordingService.EXTRA_AUDIO_MODE);
+        mAreaMode = intent.getIntExtra(RecordingService.EXTRA_AREA_MODE, 0);
+        requestMediaProjection();
+    }
+
     private void requestMediaProjection() {
         MediaProjectionManager mgr = (MediaProjectionManager) getSystemService(MEDIA_PROJECTION_SERVICE);
-        startActivityForResult(mgr.createScreenCaptureIntent(), REQ_MEDIA_PROJECTION);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.UPSIDE_DOWN_CAKE) {
+            // Always allow user choice so single-app selection is NEVER blocked or greyed out
+            startActivityForResult(
+                    mgr.createScreenCaptureIntent(android.media.projection.MediaProjectionConfig.createConfigForUserChoice()),
+                    REQ_MEDIA_PROJECTION
+            );
+        } else {
+            startActivityForResult(mgr.createScreenCaptureIntent(), REQ_MEDIA_PROJECTION);
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        super.onDestroy();
+        if (mIsResume) {
+            RecordingService.resetReauthorizationProxyActive();
+        }
     }
 
     @Override
@@ -51,6 +79,17 @@ public class PermissionProxyActivity extends Activity {
         
         if (requestCode == REQ_MEDIA_PROJECTION) {
             if (resultCode == RESULT_OK && data != null) {
+                if (mIsResume) {
+                    Log.i(TAG, "MediaProjection re-authorized for resume. Forwarding token to RecordingService.");
+                    Intent resumeIntent = new Intent(this, RecordingService.class);
+                    resumeIntent.setAction(RecordingService.ACTION_RESUME_WITH_TOKEN);
+                    resumeIntent.putExtra(RecordingService.EXTRA_RESULT_CODE, resultCode);
+                    resumeIntent.putExtra(RecordingService.EXTRA_RESULT_DATA, data);
+                    startService(resumeIntent);
+                    finish();
+                    return;
+                }
+
                 mMediaResultCode = resultCode;
                 mMediaResultData = data;
                 if (mAreaMode == 1 /* AREA_PARTIAL_SCREEN */) {

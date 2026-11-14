@@ -168,18 +168,9 @@ public class FloatingRecorderControl {
             if (mState != UIState.EXPANDED) return;
             if (mIsRecordingPaused) {
                 sendActionToService(RecordingService.ACTION_RESUME);
-                mIsRecordingPaused = false;
-                mBtnPauseResume.setImageResource(R.drawable.ic_pause);
-                mCurrentPeriodStartTime = SystemClock.elapsedRealtime();
-                mTimerHandler.post(mTimerRunnable);
             } else {
                 sendActionToService(RecordingService.ACTION_PAUSE);
-                mIsRecordingPaused = true;
-                mBtnPauseResume.setImageResource(R.drawable.ic_resume);
-                long now = SystemClock.elapsedRealtime();
-                mActiveRecordingDurationMs += (now - mCurrentPeriodStartTime);
-                mTimerHandler.removeCallbacks(mTimerRunnable);
-                updateTimerUI(mActiveRecordingDurationMs);
+                setPaused(true);
             }
         });
 
@@ -411,6 +402,23 @@ public class FloatingRecorderControl {
         int minutes = seconds / 60;
         seconds = seconds % 60;
         mTvTimer.setText(String.format("%02d:%02d", minutes, seconds));
+    }
+
+    public void setPaused(boolean paused) {
+        if (mIsRecordingPaused == paused) return;
+        mIsRecordingPaused = paused;
+        if (mBtnPauseResume != null) {
+            mBtnPauseResume.setImageResource(paused ? R.drawable.ic_resume : R.drawable.ic_pause);
+        }
+        if (paused) {
+            long now = SystemClock.elapsedRealtime();
+            mActiveRecordingDurationMs += (now - mCurrentPeriodStartTime);
+            mTimerHandler.removeCallbacks(mTimerRunnable);
+            updateTimerUI(mActiveRecordingDurationMs);
+        } else {
+            mCurrentPeriodStartTime = SystemClock.elapsedRealtime();
+            mTimerHandler.post(mTimerRunnable);
+        }
     }
 
     public void hide() {

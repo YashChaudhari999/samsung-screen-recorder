@@ -20,6 +20,7 @@ public class MuxerWrapper {
     private int mExpectedNumTracks;
     private int mNumTracksAdded;
     private boolean mIsStarted;
+    private final long[] mLastTrackPtsUs;
 
     public MuxerWrapper(String outputPath, int expectedNumTracks) throws IOException {
         mOutputPath = outputPath;
@@ -27,6 +28,8 @@ public class MuxerWrapper {
         mMediaMuxer = new MediaMuxer(mOutputPath, MediaMuxer.OutputFormat.MUXER_OUTPUT_MPEG_4);
         mNumTracksAdded = 0;
         mIsStarted = false;
+        mLastTrackPtsUs = new long[Math.max(expectedNumTracks, 2)];
+        java.util.Arrays.fill(mLastTrackPtsUs, -1);
     }
 
     public synchronized int addTrack(MediaFormat format) {
@@ -57,6 +60,13 @@ public class MuxerWrapper {
             }
         }
         if (mIsStarted && bufferInfo.size > 0 && bufferInfo.presentationTimeUs >= 0) {
+            if (trackIndex >= 0 && trackIndex < mLastTrackPtsUs.length) {
+                long lastPts = mLastTrackPtsUs[trackIndex];
+                if (bufferInfo.presentationTimeUs <= lastPts) {
+                    bufferInfo.presentationTimeUs = lastPts + 1;
+                }
+                mLastTrackPtsUs[trackIndex] = bufferInfo.presentationTimeUs;
+            }
             try {
                 mMediaMuxer.writeSampleData(trackIndex, byteBuf, bufferInfo);
             } catch (Exception e) {
