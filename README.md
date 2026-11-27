@@ -7,7 +7,7 @@
 **A lightweight, native Android screen recorder built for Samsung devices — clean UI, no bloat, no ads.**
 
 [![Download APK](https://img.shields.io/github/downloads/YashChaudhari999/samsung-screen-recorder/total?style=for-the-badge&logo=android&logoColor=white&color=4CAF50&label=Download%20APK)](https://github.com/YashChaudhari999/samsung-screen-recorder/releases/latest/download/samsung-screen-recorder.apk)
-[![License: MIT](https://img.shields.io/badge/License-MIT-blue.svg?style=flat-square)](LICENSE)
+[![License: Personal Use Only](https://img.shields.io/badge/License-Personal%20Use%20Only-ffbaff.svg?style=flat-square)](LICENSE)
 [![Platform](https://img.shields.io/badge/Platform-Android-3DDC84?style=flat-square&logo=android)](#)
 [![Release](https://img.shields.io/github/v/release/YashChaudhari999/samsung-screen-recorder?style=flat-square)](https://github.com/YashChaudhari999/samsung-screen-recorder/releases)
 [![Stars](https://img.shields.io/github/stars/YashChaudhari999/samsung-screen-recorder?style=flat-square)](https://github.com/YashChaudhari999/samsung-screen-recorder/stargazers)
@@ -102,7 +102,7 @@ cd samsung-screen-recorder
 
 ## 🤝 Contributing
 
-Contributions are what make the open-source community such an amazing place to learn, build, and grow. Any contributions you make are **greatly appreciated** — whether it's fixing a bug, improving documentation, or proposing a new feature.
+Contributions and feedback are welcome to help fix bugs, improve documentation, or suggest features (subject to the **Personal Use Only** license terms below).
 
 ### Fork and clone the repo
 
@@ -192,19 +192,19 @@ Found a bug or have a feature request? [Open an issue](https://github.com/YashCh
 ## 📄 License
 
 ```text
-MIT License
+Samsung Screen Recorder Software License (Personal Use Only)
 
-Copyright (c) 2026 Yash Chaudhari
+Copyright (c) 2026 Yash Chaudhari. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Grant of License (Personal Use Only)
+Permission is hereby granted to you, free of charge, strictly to download,
+install, and use Samsung Screen Recorder (the "Software") on compatible Android
+devices solely for your own personal, non-commercial use.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. Restrictions (No Selling or Redistribution)
+Unless authorized in writing by Yash Chaudhari, you may NOT sell, sublicense,
+monetize, distribute, redistribute, mirror, or upload copies or modified builds
+of the Software to third parties or app marketplaces.
 
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
@@ -214,7 +214,7 @@ LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
 OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
 SOFTWARE.
 ```
-This project is licensed under the **MIT License** — see the [LICENSE](LICENSE) file for details.
+You are free to **use** Samsung Screen Recorder personally, but **selling or redistributing** the app is strictly prohibited — see [LICENSE](LICENSE) for full terms.
 
 ---
 ## ☕ Support

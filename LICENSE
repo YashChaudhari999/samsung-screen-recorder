@@ -1,17 +1,30 @@
-MIT License
+Samsung Screen Recorder Software License (Personal Use Only)
 
-Copyright (c) 2026 Yash Chaudhari
+Copyright (c) 2026 Yash Chaudhari. All rights reserved.
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+1. Grant of License (Personal Use Only)
+Permission is hereby granted to you, free of charge, strictly to download,
+install, and use Samsung Screen Recorder (the "Software") on compatible Android
+devices solely for your own personal, non-commercial use.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+2. Restrictions (No Selling or Redistribution)
+Except as expressly permitted by prior written authorization from the Copyright
+Holder (Yash Chaudhari), you are strictly prohibited from:
+  a) Selling, renting, leasing, licensing, sublicensing, monetizing, or
+     otherwise exploiting the Software or any portion of it for commercial
+     purposes;
+  b) Distributing, redistributing, mirroring, publishing, uploading, or sharing
+     the Software, its APK/AAB packages, or modified builds to any third party,
+     website, or app marketplace;
+  c) Modifying, repackaging, or creating derivative works of the Software for
+     distribution under the same or any other name.
 
+3. Third-Party Open-Source Components
+Third-party libraries included in the Software (such as AndroidX and Material
+Components) remain governed by their respective third-party open-source
+licenses.
+
+4. Disclaimer of Warranty & Limitation of Liability
 THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
 IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
 FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
